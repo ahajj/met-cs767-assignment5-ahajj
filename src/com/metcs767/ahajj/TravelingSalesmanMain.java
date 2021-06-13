@@ -28,8 +28,19 @@ public class TravelingSalesmanMain {
 		SalesmanService ss = new SalesmanService();
 		List<List<Integer>> population = ss.generateRoutesForStartingLocation(cityMap, boston.getId(), true);
 		
+		// get a subset of the population
+		List<List<Integer>> parents = population.subList(2, 5);
+		
+		// find the lowest scoring parents
+		for (int i = 0; i < parents.size(); i++) {
+			System.out.println("Score for route " + parents.get(i) + " is " + ss.generateRouteScore(parents.get(i), cityMap));
+		}
+		
 		// generate a child
-		List<Integer> child = ss.createChildFromParents(population.get(1), population.get(2));
+		List<Integer> child = ss.createChildFromParents(parents.get(1), parents.get(2));
+		
+		System.out.println("Score for child " + child + " is " + ss.generateRouteScore(child, cityMap));
+		
 		
 	}
 

@@ -1,6 +1,8 @@
 package com.metcs767.ahajj;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,9 +43,11 @@ public class SalesmanService {
 		Set<Integer> cityIds = cities.keySet();
 		
 		// remove the starting city from the set
+		City startingCity = cities.get(startingCityId);
 		cityIds.remove(startingCityId);
 		List<Integer> citylist = new ArrayList<Integer>();
 		citylist.addAll(cityIds);
+		cities.put(startingCityId, startingCity);
 		// create routes 
 		List<List<Integer>> permutationsOfRoutes = generatePerm(citylist); 
 		
@@ -158,17 +162,135 @@ public class SalesmanService {
 	 * @param cities
 	 * @return
 	 */
-//	public Integer generateRouteScore(List<Integer> route, Map<Integer, City> cities) {
-//		
-//		Integer score 0;
-//		
-//		
-//	
-//		
-//		return null;
-//		
-//	}
-//	
+	public Double generateRouteScore(List<Integer> route, Map<Integer, City> cities) {
+		
+		Double score = 0d;
+		
+		// Check if the two lists contain the same elements
+		// this will decide if all cities have been visited
+		// as well as if there are any fake cities
+		boolean validRoute = listEqualsIgnoreOrder(route, cities.keySet());
+		
+		if (!validRoute) {
+			// if the route is not valid then give it a large score
+			score += 1000;
+		}
+		
+		// check the milage
+		score += calculateMilageInRoute(route, cities);
+		
+		
+		return score;
+		
+	}
+	
+	/**
+	 * Function to check if two lists contain the same elements
+	 * Doesn't take into account duplicates but is okay since our map of cities has unique keys
+	 * 
+	 * Based on an answer on this stackoverflow
+	 * https://stackoverflow.com/questions/1075656/simple-way-to-find-if-two-different-lists-contain-exactly-the-same-elements
+	 * 
+	 */
+	private boolean listEqualsIgnoreOrder(List<Integer> list1, Set<Integer> set) {
+	    return new HashSet<>(list1).equals(set);
+	}
+	
+	private Double calculateMilageInRoute(List<Integer> route, Map<Integer, City> cities) {
+		
+		City first;
+		City second;
+		Double milage = 0d;
+		
+		for (int i = 0; i < route.size()-1; i++) {
+			
+			if (cities.containsKey(route.get(i)) && 
+					cities.containsKey(route.get(i+1))) {
+				
+				first = cities.get(route.get(i));				
+				second =cities.get(route.get(i+1));
+				
+				milage += Math.sqrt((second.getY() - first.getY()) * (second.getY() - first.getY()) 
+						+ (second.getX() - first.getX()) * (second.getX() - first.getX()));
+				
+			} else {
+				milage += 1000d;
+			}
+			
+		}
+		
+		return milage;
+		
+	}
+	
+	/**
+	 * Generates a new population of routes passed in
+	 * First, it rates the passed in routes (low milage routes score best)
+	 * Then, it assigns a probability to each route and decides which will be parents
+	 * Finally, it creates children and returns that
+	 * 
+	 * @param population current list of routes to be rated and mated
+	 * @param cities list of all cities. Used to figure out milage in routes
+	 * @return new population of routes
+	 */
+	public List<List<Integer>> selectParentsAndGenerateChildren(List<List<Integer>> population, Map<Integer, City> cities) {
+		
+		DistributedRandomNumberGenerator drng = new DistributedRandomNumberGenerator();
+		
+		List<List<Integer>> newRoutes = new ArrayList<List<Integer>>();
+		List<List<Integer>> parentRoutes = new ArrayList<List<Integer>>();
+		// first rate the current routes
+		// 'low' scores should be rated higher as that means the milage was low
+		
+		Map<Double, List<Integer>> ratingToRoute = new HashMap<Double, List<Integer>>();
+		Map<Integer, Double> indexToScore = new HashMap<Integer, Double>();
+		Map<Integer, Double> indexToRating = new HashMap<Integer, Double>();
+		
+		Double sumOfScores = 0d;
+		Double curScore = 0d;
+		
+		// calculate the total scores and match score (milage) to route
+		for (int i = 0; i < population.size(); i++) {
+			curScore = calculateMilageInRoute(population.get(i), cities);
+//			indexToScore.put(i, curScore);
+			ratingToRoute.put(curScore, population.get(i));
+			indexToScore.put(i, curScore);
+			
+			sumOfScores += curScore;
+		}
+
+		// now that we have a score per route, we select the parents for the next generation
+		// we select the next set of parents using probability.  Low scores have a higher probability 
+		// since that means they had low milage
+		double distribution = 0d;
+		for (int i = 0; i < population.size(); i++) {
+			// rating is total scores (milage) - routes score (milage)
+			// done this way since low milage rates higher
+			distribution = (double) (Math.round(((sumOfScores - curScore)/sumOfScores) * 100) / 100);
+			drng.addNumber(i, distribution);
+			indexToRating.put(i, distribution);
+		}
+		
+		// now that we have a map of index to rating we can use that to randomly select parents
+		for (int i = 0; i < population.size(); i++) {
+			
+			// index of a route in the population
+			int random = drng.getDistributedRandomNumber();
+			parentRoutes.add(population.get(random));
+		}
+		
+		// finally, we generate some children from the parents
+		// parent pairs are chosen randomly
+		int parentOneIndex;
+		int parentTwoIndex;
+		for (int i = 0; i < population.size(); i++) {
+			parentOneIndex = generateRandomNumberInRange(population.size(), 0);
+			parentTwoIndex = generateRandomNumberInRange(population.size(), 0);
+			newRoutes.add(createChildFromParents(parentRoutes.get(parentOneIndex), parentRoutes.get(parentTwoIndex)));
+		}
+		
+		return newRoutes;
+	}
 	
 	/**
 	 * Function to generate a random number in a given range.

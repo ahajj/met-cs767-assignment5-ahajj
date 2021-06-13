@@ -1,4 +1,8 @@
 package com.metcs767.ahajj;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * City Factory
  * 
@@ -32,6 +36,23 @@ public class CityFactory {
 	
 	public City buildCityWithRandCoord(String cityName) {
 		return(buildCityWithCoord(cityName, generateRandomNumber(MAX_X_COORD), generateRandomNumber(MAX_Y_COORD)));
+	}
+	
+	public Map<Integer, City> generateAMapOfCities(int numberOfCities) {
+		
+		Map<Integer, City> cities = new HashMap<Integer, City>();
+		City curCity;
+		
+		if (numberOfCities <= 0) {
+			return cities;
+		}
+		
+		for (int i = 0; i < numberOfCities; i++) {
+			curCity = buildCityWithRandCoord("c" + 1);
+			cities.put(curCity.getId(), curCity);
+		}
+		
+		return cities;
 	}
 	
 	public City buildCityWithCoord(String cityName, Integer x, Integer y) {
