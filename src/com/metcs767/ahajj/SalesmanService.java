@@ -1,6 +1,8 @@
 package com.metcs767.ahajj;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,23 +23,15 @@ public class SalesmanService {
 	
 	// each city can be represented by 2 bytes (16 bits)
 	// this means we have a limitation of 256 cities
-	private static final int MAX_BYTES = 2;
-	private static final int MAX_BITS = 8 * MAX_BYTES;
+	//private static final int MAX_BYTES = 2;
+	private static int maxBits = 0;
+	private static int penaltyBase = 2000;
 	
 	// probability of mutation
-	private static final int MUTATION_FACTOR = 100000;
+	private static final int MUTATION_FACTOR = 10000;
 
-	/**
-	 * Generate a list of routes for a given set of cities
-	 * Number of routes returned is (n-1)! where n is the number of cities (since the starting city is defined)
-	 * Has option to include starting city as first and last cities within the routes
-	 * 
-	 * @param cities map of cities where the key is the city id
-	 * @param startingCityId id of the starting city
-	 * @param includeStartingCity true if the starting city should added as the first and last cities in the route.  False to leave out
-	 * @return a list of all possible routes from the starting city
-	 */
-	public List<List<Integer>> generateRoutesForStartingLocation(Map<Integer, City> cities, Integer startingCityId, Boolean includeStartingCity) {
+	
+	public List<List<Integer>> generateNumOfRoutesForStartingLocation(int numPermutations, Map<Integer, City> cities, Integer startingCityId, Boolean includeStartingCity) {
 		
 		// Number of possible routes from the starting location is (n-1)! where n is the number of cities
 		Set<Integer> cityIds = cities.keySet();
@@ -49,7 +43,20 @@ public class SalesmanService {
 		citylist.addAll(cityIds);
 		cities.put(startingCityId, startingCity);
 		// create routes 
-		List<List<Integer>> permutationsOfRoutes = generatePerm(citylist); 
+		List<List<Integer>> permutationsOfRoutes = new ArrayList<List<Integer>>();
+		List<Integer> tempCities = new ArrayList<Integer>();
+		for (int i = 0; i < numPermutations; i++) {
+			tempCities = citylist;
+			Collections.shuffle(tempCities);	
+			
+			// if the list of routes already contains this route
+			// then shuffle and try again
+			while (permutationsOfRoutes.contains(tempCities)) {
+				Collections.shuffle(tempCities);	
+			}
+			ArrayList<Integer> tempCit = (ArrayList<Integer>) ((ArrayList<Integer>) tempCities).clone();
+			permutationsOfRoutes.add(tempCit);
+		}
 		
 		// Add the starting city as the first and last cities in the route if needed
 		if(includeStartingCity) {
@@ -94,23 +101,23 @@ public class SalesmanService {
 		// first print the parents in binary notation for us to see
 		String parentOneStr = binaryStringRepresentationOfRoute(parentOne);
 		String parentTwoStr = binaryStringRepresentationOfRoute(parentTwo);
-		System.out.println("Parent 1: " + parentOneStr);
-		System.out.println("Parent 2: " + parentTwoStr);
+//		System.out.println("Parent 1: " + parentOneStr);
+//		System.out.println("Parent 2: " + parentTwoStr);
 		
 		// generate a random crossover point, should not be in the starting or ending points (since they are the starting city)
-		int crossoverPoint = generateRandomNumberInRange(MAX_BITS, parentOneStr.length()-MAX_BITS);
+		int crossoverPoint = generateRandomNumberInRange(maxBits, parentOneStr.length()-maxBits);
 		
 		// once a crossover point is found, then split the parents at that point.
 		// Child = PARENT1_CROSSOVER_SECTION + PARENT2_CROSSOVER_SECTION
 		String childBinaryRep = parentOneStr.substring(0, crossoverPoint);
 		childBinaryRep += parentTwoStr.substring(crossoverPoint);
 		
-		System.out.println("Child:    " + childBinaryRep);
+//		System.out.println("Child:    " + childBinaryRep);
 		
 		// pass the created child through a mutator function
 		childBinaryRep = mutateRoute(childBinaryRep);
 
-		System.out.println("M Child:  " + childBinaryRep);
+//		System.out.println("M Child:  " + childBinaryRep);
 		
 		// translate that binary string to a list of integers (city ids)
 		List<Integer> cityIds = convertBinaryStringToList(childBinaryRep);
@@ -122,6 +129,8 @@ public class SalesmanService {
 	/**
 	 * Mutate a given route.  There is a define mutation probability (0.001) per bit.  
 	 * Mutated bits get flipped (so 0 becomes 1, and 1 becomes 0).
+	 * Only the first and the last city will not be mutated
+	 * Since that is the starting/ending point
 	 * 
 	 * @param route binary representation of a route
 	 * @return mutatedRoute mutated binary representation of a route
@@ -131,7 +140,8 @@ public class SalesmanService {
 		String mutatedRoute = "";
 		boolean mutateBit = false;
 		Character c;
-		for (int i = 0; i < route.length(); i++) {
+		mutatedRoute = route.substring(0, maxBits);
+		for (int i = maxBits; i < route.length()-maxBits; i++) {
 			
 			// check if random number generated is equal to 10 (1 in MUTATION_FACTOR chance)
 			mutateBit = (generateRandomNumberInRange(MUTATION_FACTOR, 0)) == 10 ? true : false;
@@ -146,6 +156,7 @@ public class SalesmanService {
 			
 			mutatedRoute += c;
 		}
+		mutatedRoute += route.substring(route.length()-maxBits);
 		
 		return mutatedRoute;		
 	}
@@ -173,13 +184,16 @@ public class SalesmanService {
 		
 		if (!validRoute) {
 			// if the route is not valid then give it a large score
-			score += 1000;
+			score += (penaltyBase*maxBits);
 		}
 		
 		// check the milage
 		score += calculateMilageInRoute(route, cities);
-		
-		
+
+
+		// Square the milage to make bigger gaps on similar distances/routes;
+		score = Math.pow(score, 2);
+		System.out.println(route + " : Score " + score);
 		return score;
 		
 	}
@@ -214,7 +228,7 @@ public class SalesmanService {
 						+ (second.getX() - first.getX()) * (second.getX() - first.getX()));
 				
 			} else {
-				milage += 1000d;
+				milage += (penaltyBase*maxBits);
 			}
 			
 		}
@@ -248,16 +262,22 @@ public class SalesmanService {
 		
 		Double sumOfScores = 0d;
 		Double curScore = 0d;
+		Double factor = 0d;
 		
 		// calculate the total scores and match score (milage) to route
 		for (int i = 0; i < population.size(); i++) {
-			curScore = calculateMilageInRoute(population.get(i), cities);
+			curScore = generateRouteScore(population.get(i), cities);
 //			indexToScore.put(i, curScore);
 			ratingToRoute.put(curScore, population.get(i));
 			indexToScore.put(i, curScore);
 			
 			sumOfScores += curScore;
+			factor += (1/curScore);
 		}
+		
+		// finally we need to flip the factor 
+		factor = (1/factor);
+		
 
 		// now that we have a score per route, we select the parents for the next generation
 		// we select the next set of parents using probability.  Low scores have a higher probability 
@@ -266,10 +286,12 @@ public class SalesmanService {
 		for (int i = 0; i < population.size(); i++) {
 			// rating is total scores (milage) - routes score (milage)
 			// done this way since low milage rates higher
-			distribution = (double) (Math.round(((sumOfScores - curScore)/sumOfScores) * 100) / 100);
+			distribution = (1/indexToScore.get(i))*factor;
 			drng.addNumber(i, distribution);
 			indexToRating.put(i, distribution);
 		}
+		
+		System.out.println("Distribution is " + indexToRating);
 		
 		// now that we have a map of index to rating we can use that to randomly select parents
 		for (int i = 0; i < population.size(); i++) {
@@ -284,8 +306,8 @@ public class SalesmanService {
 		int parentOneIndex;
 		int parentTwoIndex;
 		for (int i = 0; i < population.size(); i++) {
-			parentOneIndex = generateRandomNumberInRange(population.size(), 0);
-			parentTwoIndex = generateRandomNumberInRange(population.size(), 0);
+			parentOneIndex = generateRandomNumberInRange(population.size()-1, 0);
+			parentTwoIndex = generateRandomNumberInRange(population.size()-1, 0);
 			newRoutes.add(createChildFromParents(parentRoutes.get(parentOneIndex), parentRoutes.get(parentTwoIndex)));
 		}
 		
@@ -311,7 +333,7 @@ public class SalesmanService {
 		String routeToGo = "";
 		
 		for (int i = 0; i < route.size(); i++) {
-			routeToGo += String.format("%"+ MAX_BITS + "s", Integer.toBinaryString(route.get(i))).replace(" ", "0");
+			routeToGo += String.format("%"+ maxBits + "s", Integer.toBinaryString(route.get(i))).replace(" ", "0");
 		}
 		return routeToGo;
 	}
@@ -325,40 +347,21 @@ public class SalesmanService {
 		List<Integer> routeToGo = new ArrayList<Integer>();
 		
 		
-		for (int i = 0; i < route.length()/MAX_BITS; i++) {
-			routeToGo.add(Integer.parseInt(route.substring(i*MAX_BITS, (i+1)*MAX_BITS), 2));
+		for (int i = 0; i < route.length()/maxBits; i++) {
+			routeToGo.add(Integer.parseInt(route.substring(i*maxBits, (i+1)*maxBits), 2));
 		}
 		return routeToGo;
 	}
 	
-	/**
-	 * COPIED FROM STACKOVERFLOW
-	 * Author: DaveFar
-	 * Source:
-	 * https://stackoverflow.com/questions/10305153/generating-all-possible-permutations-of-a-list-recursively
-	 * 
-	 * Function to aide with pulling together all permutations of a list
-	 * Utilized here as the purpose of this assignment is not to come up with an algorithm to get all permutations
-	 * 
-	 * @param original list of cities
-	 * @return all posibile permutations of that list 
-	 */
-	public <E> List<List<E>> generatePerm(List<E> original) {
-		if (original.isEmpty()) {
-			List<List<E>> result = new ArrayList<>(); 
-			result.add(new ArrayList<>()); 
-			return result; 
-		}
-		E firstElement = original.remove(0);
-		List<List<E>> returnValue = new ArrayList<>();
-		List<List<E>> permutations = generatePerm(original);
-		for (List<E> smallerPermutated : permutations) {
-			for (int index=0; index <= smallerPermutated.size(); index++) {
-				List<E> temp = new ArrayList<>(smallerPermutated);
-				temp.add(index, firstElement);
-				returnValue.add(temp);
+	public void setMaxBitsFromNumberOfCities(int numCities) {
+		boolean foundPowerOfTwo = false;
+		int curPower = 4;
+		while(!foundPowerOfTwo) {
+			if (Math.pow(2.0d, curPower) >= numCities) {
+				maxBits = curPower;
+				foundPowerOfTwo = true;
 			}
+			curPower += 4;
 		}
-		return returnValue;
 	}
 }

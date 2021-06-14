@@ -40,4 +40,9 @@ public class City {
 		return id;
 	}
 	
+	@Override
+	public String toString() {
+		return this.name + " (" + this.id + ") :" + this.x + ", " + this.y + "\n"; 
+	}
+	
 }
