@@ -1,5 +1,6 @@
 package com.metcs767.ahajj;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -15,17 +16,17 @@ public class TravelingSalesmanMain {
 		// we will store our cities in a map that have the id as a keys
 		Map<Integer, City> cityMap = new HashMap<Integer, City>();
 		
-//		City boston = factory.buildCityWithCoord("Boston", 0, 0);
-//		City london = factory.buildCityWithCoord("London", 0, 5);
-//		City mumbai = factory.buildCityWithCoord("Mumbai", 4, 6);
-//		City shanghai = factory.buildCityWithCoord("Shanghai", 7, 0);
+		City boston = factory.buildCityWithCoord("Boston", 0, 0);
+		City london = factory.buildCityWithCoord("London", 0, 5);
+		City mumbai = factory.buildCityWithCoord("Mumbai", 4, 6);
+		City shanghai = factory.buildCityWithCoord("Shanghai", 7, 0);
+		
+		cityMap.put(boston.getId(), boston);
+		cityMap.put(london.getId(), london);
+		cityMap.put(mumbai.getId(), mumbai);
+		cityMap.put(shanghai.getId(), shanghai);
 //		
-//		cityMap.put(boston.getId(), boston);
-//		cityMap.put(london.getId(), london);
-//		cityMap.put(mumbai.getId(), mumbai);
-//		cityMap.put(shanghai.getId(), shanghai);
-//		
-		cityMap = factory.generateAMapOfCities(4);
+//		cityMap = factory.generateAMapOfCities(4);
 		
 		// Now lets create parents from the map
 		SalesmanService ss = new SalesmanService();
@@ -57,6 +58,9 @@ public class TravelingSalesmanMain {
 		System.out.println(parents);
 		Collection<City> values = cityMap.values();
 		System.out.println(values.toString());
+		
+		System.out.println("Scores of iterations (should be going down)");
+		ss.printScoresOfIterations();
 		
 	}
 

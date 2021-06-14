@@ -29,6 +29,8 @@ public class SalesmanService {
 	
 	// probability of mutation
 	private static final int MUTATION_FACTOR = 10000;
+	
+	private List<Double> scoresForIterations = new ArrayList<Double>();
 
 	
 	public List<List<Integer>> generateNumOfRoutesForStartingLocation(int numPermutations, Map<Integer, City> cities, Integer startingCityId, Boolean includeStartingCity) {
@@ -105,7 +107,7 @@ public class SalesmanService {
 //		System.out.println("Parent 2: " + parentTwoStr);
 		
 		// generate a random crossover point, should not be in the starting or ending points (since they are the starting city)
-		int crossoverPoint = generateRandomNumberInRange(maxBits, parentOneStr.length()-maxBits);
+		int crossoverPoint = generateRandomNumberInRange(parentOneStr.length()-maxBits, maxBits);
 		
 		// once a crossover point is found, then split the parents at that point.
 		// Child = PARENT1_CROSSOVER_SECTION + PARENT2_CROSSOVER_SECTION
@@ -190,9 +192,9 @@ public class SalesmanService {
 		// check the milage
 		score += calculateMilageInRoute(route, cities);
 
-
 		// Square the milage to make bigger gaps on similar distances/routes;
 		score = Math.pow(score, 2);
+
 		System.out.println(route + " : Score " + score);
 		return score;
 		
@@ -263,7 +265,7 @@ public class SalesmanService {
 		Double sumOfScores = 0d;
 		Double curScore = 0d;
 		Double factor = 0d;
-		
+		Double smallestScore = 0d;
 		// calculate the total scores and match score (milage) to route
 		for (int i = 0; i < population.size(); i++) {
 			curScore = generateRouteScore(population.get(i), cities);
@@ -273,7 +275,16 @@ public class SalesmanService {
 			
 			sumOfScores += curScore;
 			factor += (1/curScore);
+			
+			if (i == 0) {
+				smallestScore = curScore;
+			}
+			else if (smallestScore > curScore) {
+				smallestScore = curScore;
+			}
 		}
+		
+		scoresForIterations.add(smallestScore);
 		
 		// finally we need to flip the factor 
 		factor = (1/factor);
@@ -308,6 +319,11 @@ public class SalesmanService {
 		for (int i = 0; i < population.size(); i++) {
 			parentOneIndex = generateRandomNumberInRange(population.size()-1, 0);
 			parentTwoIndex = generateRandomNumberInRange(population.size()-1, 0);
+
+			while (parentOneIndex == parentTwoIndex)
+			{
+				parentTwoIndex = generateRandomNumberInRange(population.size()-1, 0);
+			}
 			newRoutes.add(createChildFromParents(parentRoutes.get(parentOneIndex), parentRoutes.get(parentTwoIndex)));
 		}
 		
@@ -363,5 +379,9 @@ public class SalesmanService {
 			}
 			curPower += 4;
 		}
+	}
+	
+	public void printScoresOfIterations() {
+		System.out.println(scoresForIterations);
 	}
 }
