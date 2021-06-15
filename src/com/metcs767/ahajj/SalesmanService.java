@@ -117,7 +117,7 @@ public class SalesmanService {
 //		System.out.println("Child:    " + childBinaryRep);
 		
 		// pass the created child through a mutator function
-		childBinaryRep = mutateRoute(childBinaryRep);
+		childBinaryRep = mutateRouteBySwappingCities(childBinaryRep);
 
 //		System.out.println("M Child:  " + childBinaryRep);
 		
@@ -126,6 +126,50 @@ public class SalesmanService {
 		
 		System.out.println(cityIds);
 		return cityIds;
+	}
+	
+	/**
+	 * Mutate a given route by swapping two cities.  There is a define mutation probability (0.001)*numberOfCities.  
+	 * Mutated cities get swapped with a random route
+	 * Only the first and the last city will not be mutated
+	 * Since that is the starting/ending point
+	 * 
+	 * @param route binary representation of a route
+	 * @return mutatedRoute mutated binary representation of a route
+	 */
+	private String mutateRouteBySwappingCities(String route) {
+		
+		List<String> list= new ArrayList<String>();
+		int index = 0;
+		while (index<route.length()) {
+		    list.add(route.substring(index, Math.min(index+maxBits,route.length())));
+		    index=index+maxBits;
+		}
+		
+		String mutatedRoute = "";
+		boolean mutateBit = false;
+		Character c;
+		mutatedRoute = route.substring(0, maxBits);
+		for (int i = 1; i < list.size()-1; i++) {
+			
+			// check if random number generated is equal to 10 (1 in MUTATION_FACTOR chance)
+			mutateBit = (generateRandomNumberInRange(MUTATION_FACTOR/list.size(), 0)) == 10 ? true : false;
+			
+			// pull the current character from the string
+			c = route.charAt(i);
+			
+			// flip the bit if it is to be mutated
+			if (mutateBit) {
+				int locationToSwap = generateRandomNumberInRange(list.size()-2, 1);
+
+		        Collections.swap(list, i, locationToSwap);
+			}
+			
+		}
+		for (int i = 1; i < list.size(); i++) {
+			mutatedRoute += list.get(i);			
+		}
+		return mutatedRoute;		
 	}
 	
 	/**
@@ -371,13 +415,13 @@ public class SalesmanService {
 	
 	public void setMaxBitsFromNumberOfCities(int numCities) {
 		boolean foundPowerOfTwo = false;
-		int curPower = 4;
+		int curPower = 0;
 		while(!foundPowerOfTwo) {
 			if (Math.pow(2.0d, curPower) >= numCities) {
 				maxBits = curPower;
 				foundPowerOfTwo = true;
 			}
-			curPower += 4;
+			curPower++;
 		}
 	}
 	

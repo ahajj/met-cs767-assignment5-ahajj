@@ -23,7 +23,7 @@ public class CityFactory {
 	
 	private CityFactory()
 	{
-		curId = 1;
+		curId = 0;
 	}
 	
 	public static CityFactory getCityFactoryInstance() {
