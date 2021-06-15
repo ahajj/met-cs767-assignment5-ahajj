@@ -31,7 +31,7 @@ public class TravelingSalesmanMain {
 
 		// ALTERNATIVELY, YOU CAN GENERATE A RANDOM DATA SET OF THE PASSED IN LENGTH
 		// JUST UNCOMMENT THIS AND COMMENT THE ABOVE SECTION
-		/// cityMap = factory.generateAMapOfCities(8);
+//		cityMap = factory.generateAMapOfCities(8);
 		
 		// Now lets create parents from the map
 		SalesmanService ss = new SalesmanService();
@@ -50,11 +50,11 @@ public class TravelingSalesmanMain {
 			System.out.println("Score for route " + parents.get(i) + " is " + ss.generateRouteScore(parents.get(i), cityMap));
 		}
 		
-		// 4 and 100 is good for 4 cities
+		// 10 iterations is good for 4 cities
 		// generate children
-		int iterations = 100;
+		int iterations = 10;
 		while (iterations >= 0) {
-			parents = ss.selectParentsAndGenerateChildren(parents, cityMap);	
+			parents = ss.selectParentsAndGenerateChildren(parents, cityMap, true);	
 			System.out.println("Next Generation: " + parents);
 			iterations--;
 		}

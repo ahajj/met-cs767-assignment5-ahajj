@@ -17,9 +17,9 @@ public class CityFactory {
 	
 	private static Integer curId;
 	
-	private static final Integer MAX_X_COORD = 100;
+	private static final Integer MAX_X_COORD = 15;
 	
-	private static final Integer MAX_Y_COORD = 100;
+	private static final Integer MAX_Y_COORD = 15;
 	
 	private CityFactory()
 	{
@@ -48,7 +48,7 @@ public class CityFactory {
 		}
 		
 		for (int i = 0; i < numberOfCities; i++) {
-			curCity = buildCityWithRandCoord("c" + 1);
+			curCity = buildCityWithRandCoord("c" + i);
 			cities.put(curCity.getId(), curCity);
 		}
 		

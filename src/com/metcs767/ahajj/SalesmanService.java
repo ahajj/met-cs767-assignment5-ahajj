@@ -28,7 +28,7 @@ public class SalesmanService {
 	private static int penaltyBase = 2000;
 	
 	// probability of mutation
-	private static final int MUTATION_FACTOR = 10000;
+	private static final int MUTATION_FACTOR = 1000;
 	
 	private List<Double> scoresForIterations = new ArrayList<Double>();
 
@@ -103,8 +103,8 @@ public class SalesmanService {
 		// first print the parents in binary notation for us to see
 		String parentOneStr = binaryStringRepresentationOfRoute(parentOne);
 		String parentTwoStr = binaryStringRepresentationOfRoute(parentTwo);
-//		System.out.println("Parent 1: " + parentOneStr);
-//		System.out.println("Parent 2: " + parentTwoStr);
+		System.out.println("Parent 1: " + parentOneStr);
+		System.out.println("Parent 2: " + parentTwoStr);
 		
 		// generate a random crossover point, should not be in the starting or ending points (since they are the starting city)
 		int crossoverPoint = generateRandomNumberInRange(parentOneStr.length()-maxBits, maxBits);
@@ -114,12 +114,12 @@ public class SalesmanService {
 		String childBinaryRep = parentOneStr.substring(0, crossoverPoint);
 		childBinaryRep += parentTwoStr.substring(crossoverPoint);
 		
-//		System.out.println("Child:    " + childBinaryRep);
+		System.out.println("Child:    " + childBinaryRep);
 		
 		// pass the created child through a mutator function
 		childBinaryRep = mutateRouteBySwappingCities(childBinaryRep);
 
-//		System.out.println("M Child:  " + childBinaryRep);
+		System.out.println("M Child:  " + childBinaryRep);
 		
 		// translate that binary string to a list of integers (city ids)
 		List<Integer> cityIds = convertBinaryStringToList(childBinaryRep);
@@ -129,7 +129,7 @@ public class SalesmanService {
 	}
 	
 	/**
-	 * Mutate a given route by swapping two cities.  There is a define mutation probability (0.001)*numberOfCities.  
+	 * Mutate a given route by swapping two cities.  There is a defined mutation probability of 1 in 1000
 	 * Mutated cities get swapped with a random route
 	 * Only the first and the last city will not be mutated
 	 * Since that is the starting/ending point
@@ -148,20 +148,22 @@ public class SalesmanService {
 		
 		String mutatedRoute = "";
 		boolean mutateBit = false;
-		Character c;
 		mutatedRoute = route.substring(0, maxBits);
 		for (int i = 1; i < list.size()-1; i++) {
 			
 			// check if random number generated is equal to 10 (1 in MUTATION_FACTOR chance)
-			mutateBit = (generateRandomNumberInRange(MUTATION_FACTOR/list.size(), 0)) == 10 ? true : false;
-			
-			// pull the current character from the string
-			c = route.charAt(i);
+			mutateBit = (generateRandomNumberInRange(MUTATION_FACTOR, 0)) == 10 ? true : false;
 			
 			// flip the bit if it is to be mutated
 			if (mutateBit) {
 				int locationToSwap = generateRandomNumberInRange(list.size()-2, 1);
+				
+				// ensure the city isn't swapping itself
+				while (locationToSwap == i) {
+					locationToSwap = generateRandomNumberInRange(list.size()-2, 1);
+				}
 
+				System.out.println("MUTATION: swapping " + i + " with " + locationToSwap);
 		        Collections.swap(list, i, locationToSwap);
 			}
 			
@@ -291,9 +293,10 @@ public class SalesmanService {
 	 * 
 	 * @param population current list of routes to be rated and mated
 	 * @param cities list of all cities. Used to figure out milage in routes
+	 * @param someParentsSurvive if true then 1:4 children will be an elite parent (low milage)
 	 * @return new population of routes
 	 */
-	public List<List<Integer>> selectParentsAndGenerateChildren(List<List<Integer>> population, Map<Integer, City> cities) {
+	public List<List<Integer>> selectParentsAndGenerateChildren(List<List<Integer>> population, Map<Integer, City> cities, boolean someParentsSurvive) {
 		
 		DistributedRandomNumberGenerator drng = new DistributedRandomNumberGenerator();
 		
@@ -355,12 +358,14 @@ public class SalesmanService {
 			int random = drng.getDistributedRandomNumber();
 			parentRoutes.add(population.get(random));
 		}
+
 		
 		// finally, we generate some children from the parents
 		// parent pairs are chosen randomly
 		int parentOneIndex;
 		int parentTwoIndex;
-		for (int i = 0; i < population.size(); i++) {
+		int numGeneratedChildren = (int) ((someParentsSurvive) ? Math.round(population.size() * 0.75) : population.size());
+		for (int i = 0; i < numGeneratedChildren ; i++) {
 			parentOneIndex = generateRandomNumberInRange(population.size()-1, 0);
 			parentTwoIndex = generateRandomNumberInRange(population.size()-1, 0);
 
@@ -369,6 +374,12 @@ public class SalesmanService {
 				parentTwoIndex = generateRandomNumberInRange(population.size()-1, 0);
 			}
 			newRoutes.add(createChildFromParents(parentRoutes.get(parentOneIndex), parentRoutes.get(parentTwoIndex)));
+		}
+		
+		// add in some parents back to the new generation if the flag is set (populations.size() & numGeneratedChildren will be the same if false)
+		for (int i = 0; i < (population.size() - numGeneratedChildren); i++) {
+			newRoutes.add(parentRoutes.get(generateRandomNumberInRange(population.size()-1, 0)));
+			System.out.println("Elite parent " + newRoutes.get(newRoutes.size()-1) + " added");
 		}
 		
 		return newRoutes;
